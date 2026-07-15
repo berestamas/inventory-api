@@ -14,7 +14,7 @@ class UpdateContract
      */
     public function handle(Contract $contract, UpdateContractData $updateContractData): Contract
     {
-        $contract->update($updateContractData->toArray());
+        $contract->updateOrFail($updateContractData->forSaving());
 
         return $contract;
     }

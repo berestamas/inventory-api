@@ -6,13 +6,11 @@ namespace App\Data\Contracts;
 
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Attributes\MapInputName;
-use Spatie\LaravelData\Attributes\MapOutputName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\LaravelData\Optional;
 
 #[MapInputName(SnakeCaseMapper::class)]
-#[MapOutputName(SnakeCaseMapper::class)]
 class UpdateContractData extends Data
 {
     public function __construct(
@@ -23,4 +21,21 @@ class UpdateContractData extends Data
         public readonly CarbonImmutable|Optional|null $startsAt = new Optional,
         public readonly CarbonImmutable|Optional|null $endsAt = new Optional,
     ) {}
+
+    /**
+     * The column-keyed attributes to persist; omitted (Optional) fields are excluded.
+     *
+     * @return array<string, mixed>
+     */
+    public function forSaving(): array
+    {
+        return collect([
+            'contract_number' => $this->contractNumber,
+            'partner_name' => $this->partnerName,
+            'description' => $this->description,
+            'signed_at' => $this->signedAt,
+            'starts_at' => $this->startsAt,
+            'ends_at' => $this->endsAt,
+        ])->reject(fn (mixed $value): bool => $value instanceof Optional)->all();
+    }
 }

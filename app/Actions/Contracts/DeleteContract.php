@@ -13,6 +13,6 @@ class DeleteContract
      */
     public function handle(Contract $contract): void
     {
-        $contract->delete();
+        $contract->deleteOrFail();
     }
 }

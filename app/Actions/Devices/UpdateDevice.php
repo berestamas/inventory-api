@@ -14,7 +14,7 @@ class UpdateDevice
      */
     public function handle(Device $device, UpdateDeviceData $updateDeviceData): Device
     {
-        $device->update($updateDeviceData->toArray());
+        $device->updateOrFail($updateDeviceData->forSaving());
 
         return $device;
     }

@@ -14,11 +14,9 @@ class CreateDevice
      */
     public function handle(CreateDeviceData $createDeviceData): Device
     {
-        return Device::create([
-            'name' => $createDeviceData->name,
-            'manufacturer' => $createDeviceData->manufacturer,
-            'category' => $createDeviceData->category,
-            'description' => $createDeviceData->description,
-        ]);
+        $device = new Device($createDeviceData->forSaving());
+        $device->saveOrFail();
+
+        return $device;
     }
 }

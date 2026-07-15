@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Contracts;
 
 use App\Models\Contract;
+use App\Models\ContractDevice;
 
 class DetachDeviceFromContract
 {
@@ -17,8 +18,8 @@ class DetachDeviceFromContract
     public function handle(Contract $contract, string $serialNumber): void
     {
         $contract->units()
-            ->where('serial_number', mb_strtoupper($serialNumber))
+            ->where('serial_number', ContractDevice::canonicalSerial($serialNumber))
             ->sole()
-            ->delete();
+            ->deleteOrFail();
     }
 }

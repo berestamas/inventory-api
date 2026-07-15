@@ -14,19 +14,18 @@ class AttachDeviceToContract
     /**
      * Attach a physical unit of a device type to a contract.
      *
-     * Serial numbers are stored uppercase so uniqueness behaves identically
-     * on case-insensitive (MySQL) and case-sensitive (SQLite) engines.
+     * forSaving() yields the canonical serial form on every entry point;
+     * AttachDeviceRequest applies the same canonicalization earlier so the
+     * unique rule already sees it.
      */
     public function handle(Contract $contract, AttachDeviceData $attachDeviceData): ContractDevice
     {
         $device = Device::query()->where('uuid', $attachDeviceData->deviceUuid)->sole();
 
-        $contractDevice = new ContractDevice([
-            'serial_number' => mb_strtoupper($attachDeviceData->serialNumber),
-        ]);
+        $contractDevice = new ContractDevice($attachDeviceData->forSaving());
         $contractDevice->contract()->associate($contract);
         $contractDevice->device()->associate($device);
-        $contractDevice->save();
+        $contractDevice->saveOrFail();
 
         return $contractDevice;
     }

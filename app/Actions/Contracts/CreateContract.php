@@ -14,13 +14,9 @@ class CreateContract
      */
     public function handle(CreateContractData $createContractData): Contract
     {
-        return Contract::create([
-            'contract_number' => $createContractData->contractNumber,
-            'partner_name' => $createContractData->partnerName,
-            'description' => $createContractData->description,
-            'signed_at' => $createContractData->signedAt,
-            'starts_at' => $createContractData->startsAt,
-            'ends_at' => $createContractData->endsAt,
-        ]);
+        $contract = new Contract($createContractData->forSaving());
+        $contract->saveOrFail();
+
+        return $contract;
     }
 }

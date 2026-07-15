@@ -16,4 +16,19 @@ class UpdateDeviceData extends Data
         public readonly DeviceCategory|Optional $category = new Optional,
         public readonly string|Optional|null $description = new Optional,
     ) {}
+
+    /**
+     * The column-keyed attributes to persist; omitted (Optional) fields are excluded.
+     *
+     * @return array<string, mixed>
+     */
+    public function forSaving(): array
+    {
+        return collect([
+            'name' => $this->name,
+            'manufacturer' => $this->manufacturer,
+            'category' => $this->category,
+            'description' => $this->description,
+        ])->reject(fn (mixed $value): bool => $value instanceof Optional)->all();
+    }
 }
