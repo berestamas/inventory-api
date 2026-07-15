@@ -1,13 +1,13 @@
 ---
 name: laravel-data-development
-description: "spatie/laravel-data conventions and tooling for this application — apply whenever creating or modifying a Data/Resource class, wiring a FormRequest or Model to a DTO via the WithData trait, or touching casts, name mappers, computed/optional properties, or Eloquent Data casts. Covers the 'get data from a class quickly' pattern (WithData trait + $request->getData() / $model->getData()), and the laravel-data mechanics the other skills lean on but never teach (::from() creation and magic fromX() methods, ::collect(), name mappers, #[WithCast] casts, Optional vs nullable, #[Computed], collection typing, Eloquent Data casting, make:data). Critically documents WHY this app sets validation_strategy => Disabled and enables FormRequestNormalizer so getData() defers to the FormRequest and never re-validates against the DTO's auto-inferred rules. Does NOT cover where DTOs live, the request lifecycle, or output Resource field-allowlists (see app-architecture). Pairs with app-architecture and uuid-model-identifiers."
+description: "spatie/laravel-data conventions and tooling for this application — apply whenever creating or modifying a Data/Resource class, wiring a FormRequest or Model to a DTO via the WithData trait, or touching casts, name mappers, computed/optional properties, or Eloquent Data casts. Covers the 'get data from a class quickly' pattern (WithData trait + $request->getData() / $model->getData()), and the laravel-data mechanics the other skills lean on but never teach (::from() creation and magic fromX() methods, ::collect(), name mappers, #[WithCast] casts, Optional vs nullable, #[Computed], collection typing, Eloquent Data casting, make:data). Critically documents WHY this app sets validation_strategy => Disabled and enables FormRequestNormalizer so getData() defers to the FormRequest and never re-validates against the DTO's auto-inferred rules. Does NOT cover where DTOs live, the request lifecycle, or API response output — which uses Laravel's built-in Eloquent API Resources, not laravel-data (see app-architecture). Pairs with app-architecture and uuid-model-identifiers."
 ---
 
 # laravel-data Development
 
-`spatie/laravel-data` is the backbone of every typed boundary in this app: input DTOs (`extends Data`) and output read-models (`extends Resource`). This skill owns the **mechanics and tooling**. It deliberately does not repeat its neighbour:
+`spatie/laravel-data` is the backbone of every typed **input** boundary in this app: input DTOs (`extends Data`). API responses are **not** laravel-data — they are shaped by Laravel's built-in Eloquent API Resources (see `app-architecture`). This skill owns the **mechanics and tooling**. It deliberately does not repeat its neighbour:
 
-- **Where DTOs live, how they're named, the Controller → FormRequest → DTO → Action lifecycle, output `Resource` field-allowlists, `fromModel()`, returning collections/paginators, leak tests** → `app-architecture`.
+- **Where DTOs live, how they're named, the Controller → FormRequest → DTO → Action lifecycle, the Eloquent API Resource output layer (allowlists, collections/paginators, leak tests)** → `app-architecture`.
 
 Read that for the *what/where*. Read this for the *how*: getting data out of a class quickly, and the casting / mapping / optionality toolkit.
 
@@ -78,7 +78,7 @@ Consequences you must respect:
 
 The bits the other skills assume you know. Full detail in [`reference.md`](reference.md); the house rules:
 
-- **Creating**: `Data::from($arrayOrModelOrRequest)` is polymorphic. Add a magic `public static function fromModel(User $u): self` for non-trivial mapping (output Resources do this — see `app-architecture`). `Data::collect($iterable)` for collections; `Data::optional($maybeNull)` to get `null` instead of an empty object.
+- **Creating**: `Data::from($arrayOrModelOrRequest)` is polymorphic. Add a magic `public static function fromModel(User $u): self` for non-trivial mapping from a model into an input DTO. `Data::collect($iterable)` for collections; `Data::optional($maybeNull)` to get `null` instead of an empty object.
 - **Name mapping**: use `#[MapInputName(SnakeCaseMapper::class)]` when request keys are snake_case but properties are camelCase. **Never** `#[MapName]` on input DTOs — it also remaps the serialized *output* to snake_case, breaking the camelCase contract the API response exposes. Reach for a mapper only when keys genuinely differ; our payloads are camelCase end-to-end, so most DTOs need none.
 - **Casts**: `#[WithCast(DateTimeInterfaceCast::class)]` for dates, `EnumCast` for enums; register app-wide defaults under `'casts'` in `config/data.php` rather than annotating every property. Write a custom `Cast` only for value objects.
 - **Optional vs nullable** — they mean different things and serialize to different JSON:
@@ -97,5 +97,5 @@ The bits the other skills assume you know. Full detail in [`reference.md`](refer
 
 ## See also
 
-- `app-architecture` — DTO location, naming, the request lifecycle, and output `Resource` allowlists / `fromModel()` / leak tests; the input-DTO `::from($request->validated())` form that `getData()` is shorthand for.
-- `uuid-model-identifiers` — why DTOs expose `uuid`, never the integer `id`.
+- `app-architecture` — DTO location, naming, the request lifecycle, and the Eloquent API Resource output layer (allowlists / collections / leak tests); the input-DTO `::from($request->validated())` form that `getData()` is shorthand for.
+- `uuid-model-identifiers` — why API Resources expose `uuid`, never the integer `id`.

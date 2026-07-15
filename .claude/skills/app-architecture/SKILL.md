@@ -16,7 +16,8 @@ These are the non-negotiable conventions for this codebase. They exist so that e
 | Business logic / state changes | `app/Actions/{Domain}/` | Controllers, FormRequests, Models |
 | Validation rules | `app/Http/Requests/` (FormRequest) | Controllers, Actions |
 | Authorization decisions | `app/Policies/` | Controllers, FormRequests, inline `abort_unless` |
-| Data crossing layer boundaries | `app/Data/` (spatie/laravel-data) | Associative arrays |
+| Typed input crossing layer boundaries | `app/Data/` (spatie/laravel-data) | Associative arrays |
+| API response shape / serialization | `app/Http/Resources/` (Eloquent API Resources) | Inline `->map()`, whole-model output, output DTOs |
 | Reusable / important queries | `app/Queries/` | Controllers, fat Models, repositories |
 | Client-driven filtering/sorting/pagination | `spatie/laravel-query-builder` | Hand-rolled `when()` chains in controllers |
 | Multi-step save flows | `app/Pipelines/{Flow}/` | One giant Action |
@@ -46,7 +47,9 @@ public function store(SaveTeamRequest $saveTeamRequest, CreateTeam $createTeam):
         CreateTeamData::from($saveTeamRequest->validated()),
     );
 
-    return response()->json(TeamData::from($team), Response::HTTP_CREATED);
+    return TeamResource::make($team)
+        ->response()
+        ->setStatusCode(Response::HTTP_CREATED);
 }
 ```
 
@@ -54,7 +57,7 @@ That is a complete controller method. If a controller method grows beyond author
 
 ## Controllers Stay Thin
 
-A controller method may: resolve the FormRequest, authorize via a Policy, construct a Data object, call one Action (or Query class), and return a response. It may not: contain business branching, run Eloquent queries, map models to arrays inline, or write to the database. Inline `->map(fn (...) => [...])` blocks building a response payload are queries-plus-transformation hiding in a controller — move the query into a Query class and the shape into a Data object.
+A controller method may: resolve the FormRequest, authorize via a Policy, construct a Data object, call one Action (or Query class), and return a response. It may not: contain business branching, run Eloquent queries, map models to arrays inline, or write to the database. Inline `->map(fn (...) => [...])` blocks building a response payload are queries-plus-transformation hiding in a controller — move the query into a Query class and the response shape into an API Resource.
 
 Two narrow exceptions: trivial single-model lookups belong to route model binding (not inline `findOrFail()`), and the declarative `QueryBuilder::for(...)` composition for listing endpoints may live in the controller method (see below) — it is request-to-query whitelisting, not business logic, and its base builder still comes from a Query class.
 
@@ -143,9 +146,9 @@ Every authorization decision — in a route, a job, a command, or an action — 
 
 ## DTOs: Arrays Never Cross Boundaries
 
-Data passed between layers — controller → action, action → action, action → API response — travels in `spatie/laravel-data` objects, never associative arrays. An array tells the reader nothing about its keys, types, or nullability; a Data class is typed, autocompleted, refactorable, and checked by larastan.
+Input data passed between layers — controller → action, action → action — travels in `spatie/laravel-data` objects, never associative arrays. An array tells the reader nothing about its keys, types, or nullability; a Data class is typed, autocompleted, refactorable, and checked by larastan. (Outbound API responses are **not** DTOs — they are shaped by Laravel's built-in Eloquent API Resources; see [Output: Eloquent API Resources](#output-eloquent-api-resources) below.)
 
-Data classes live in `app/Data/{Domain}/` and use readonly promoted constructor properties in camelCase. **Input** DTOs extend `Spatie\LaravelData\Data`; **output** read-models returned from the API extend `Spatie\LaravelData\Resource` (output-only, no validation/authorization overhead):
+DTOs live in `app/Data/{Domain}/` and use readonly promoted constructor properties in camelCase. They extend `Spatie\LaravelData\Data`:
 
 ```php
 declare(strict_types=1);
@@ -166,10 +169,50 @@ class CreateTeamData extends Data
 
 Conventions:
 
-- **Input DTOs** are named after the operation (`CreateTeamData`, `UpdateMemberRoleData`) and created from validated input: `CreateTeamData::from($request->validated())`. Note that `Data::from()` does **not** validate — validation is the FormRequest's job, which has already run. Use `#[MapInputName(SnakeCaseMapper::class)]` when request keys are snake_case and properties are camelCase (not `MapName`, which would also remap serialized *output* to snake_case).
-- **Output DTOs** extend `Spatie\LaravelData\Resource` (not `Data` — they only ever travel outward, so they skip validation/authorization), are named after the thing they represent (`UserTeamData`, `TeamMemberData`), and built via `::from($model)` or a magic `fromModel()` constructor. They expose an explicit **allowlist** of fields — never the whole model row, so no column can leak into the API response by accident. Return them (or `TeamMemberData::collect($team->members)`) directly from a controller — Resource objects are `Arrayable` + `Responsable`, so they serialize to JSON on their own. `Lazy::whenLoaded('members', $team, fn () => TeamMemberData::collect($team->members))` keeps a relation out of the payload until it is eager-loaded. Enforce field minimization with a test that asserts the serialized payload contains only the allowed keys — no column leaks, no accidental over-exposure.
-- The existing plain `readonly` classes in `app/Data/` (`UserTeam`, `TeamPermissions`) predate this rule. When you touch one, change its base class to the right one for its direction — `Spatie\LaravelData\Data` for input, `Spatie\LaravelData\Resource` for output; moving it into a `{Domain}/` subfolder and adding the `Data` suffix is a deliberate rename refactor (call sites included), not something to do in passing. New classes follow `app/Data/{Domain}/{Name}Data.php` from the start.
+- **DTOs are input-only.** They are named after the operation (`CreateTeamData`, `UpdateMemberRoleData`) and created from validated input: `CreateTeamData::from($request->validated())`. Note that `Data::from()` does **not** validate — validation is the FormRequest's job, which has already run. Use `#[MapInputName(SnakeCaseMapper::class)]` when request keys are snake_case and properties are camelCase (not `MapName`, which would also remap serialized *output* to snake_case). A DTO is never used to shape an API response — that is the API Resource's job (see below).
+- The existing plain `readonly` classes in `app/Data/` (`UserTeam`, `TeamPermissions`) predate this rule. When you touch one, change its base class to `Spatie\LaravelData\Data`; moving it into a `{Domain}/` subfolder and adding the `Data` suffix is a deliberate rename refactor (call sites included), not something to do in passing. New classes follow `app/Data/{Domain}/{Name}Data.php` from the start.
 - Arrays remain legal only at framework edges: `rules()` arrays, config, and the attribute array given to Eloquent `create()`/`update()` *inside* an action or query class.
+
+## Output: Eloquent API Resources
+
+Outbound API responses are shaped by Laravel's built-in [Eloquent API Resources](https://laravel.com/docs/eloquent-resources) — **not** DTOs. The Resource is the single place that decides which model columns become JSON, so response shaping stays out of controllers and Actions and no `Spatie\LaravelData\Resource` read-model is introduced for output.
+
+Resources live in `app/Http/Resources/`, are named `{Thing}Resource` (`TeamResource`, `TeamMemberResource`), and extend `Illuminate\Http\Resources\Json\JsonResource`. Create them with `php artisan make:resource {Thing}Resource --no-interaction`.
+
+```php
+declare(strict_types=1);
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/**
+ * @mixin \App\Models\Team
+ */
+class TeamResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->uuid,
+            'name' => $this->name,
+            'is_personal' => $this->is_personal,
+            'members' => TeamMemberResource::collection($this->whenLoaded('memberships')),
+        ];
+    }
+}
+```
+
+- **Explicit allowlist, never `parent::toArray()`.** List every field by hand so no column can leak into the response by accident — the field-minimization guarantee the old output DTOs gave now lives here.
+- **Return straight from the controller.** `return TeamResource::make($team);`. For a non-200 status, chain `->response()->setStatusCode(...)`, as the `store()` example above does with `Response::HTTP_CREATED`.
+- **Collections and paginators**: `TeamMemberResource::collection($members)` wraps a collection or a paginator (pagination `meta`/`links` are preserved). Add a dedicated `ResourceCollection` subclass only when the collection needs its own top-level metadata.
+- **Conditional relations**: `$this->whenLoaded('memberships')` keeps a relation out of the payload until it has been eager-loaded — never trigger a lazy query from inside `toArray()`.
+- **Leak test, always**: a Feature test asserts the serialized payload contains exactly the allowed keys (`assertExactJson`, or `assertJsonStructure` plus an explicit missing-key assertion) — no column leaks, no accidental over-exposure. Every Resource ships with one.
+- The `@mixin` PHPDoc tells larastan the `$this->` accessors resolve against the wrapped model, keeping the analysis green without casts.
 
 ## Query Classes — Never Repositories
 
@@ -232,7 +275,7 @@ Rules of thumb:
 - Whitelist explicitly: strings are partial filters; use `AllowedFilter::exact()` for ids/enums, `::scope()` for local scopes, `::callback()`/custom `Filter` classes for anything complex.
 - Always set `defaultSort()`; `cursorPaginate()` additionally requires a unique-column sort to be deterministic.
 - Always `->appends($request->query())` so pagination links keep the active filters.
-- Transform the page's items into output Resource DTOs before returning them (`TeamMemberData::collect($paginator)` or `->through(fn ($m) => TeamMemberData::fromModel($m))`).
+- Wrap the paginator in an API Resource collection before returning it (`TeamMemberResource::collection($paginator)`) — the pagination `meta`/`links` are preserved and each item is passed through the Resource's allowlist.
 
 ## Multi-Step Saves: the Pipeline Pattern
 
@@ -344,6 +387,6 @@ If any step modifies files or fails, fix the cause and re-run from step 1 until 
 - Descriptive, intention-revealing names: `isRegisteredForDiscounts`, not `discount()`; named arguments for boolean/optional parameters at call sites (`handle($user, $data, isPersonal: true)`).
 - Small units: short methods, early returns over nested conditionals, one level of abstraction per method.
 - Backed enums with TitleCase cases over magic strings; behavior on the enum (`label()`, `permissions()`) via `match`.
-- One-line PHPDoc descriptions on methods; array-shape generics (`@return Collection<int, UserTeamData>`); no inline comments narrating what the next line does.
+- One-line PHPDoc descriptions on methods; array-shape generics (`@return Collection<int, Team>`); no inline comments narrating what the next line does.
 - Shared behavior in `app/Concerns/` traits; custom validation in `app/Rules/`.
 - Delete dead code instead of commenting it out — git remembers.

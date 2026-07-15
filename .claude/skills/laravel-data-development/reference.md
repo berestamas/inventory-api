@@ -33,9 +33,9 @@ UserData::optional($maybeNullModel);         // returns null instead of an empty
 public static function fromModel(User $user): self { /* explicit mapping */ }
 ```
 
-▸ Output read-models use a `fromModel()` magic method to map explicitly and minimally (`app-architecture`). Input DTOs are usually built straight from the validated array (or `$request->getData()`).
+▸ Input DTOs are usually built straight from the validated array (or `$request->getData()`); use a `fromModel()` magic method for non-trivial mapping from a model. API responses are shaped by Eloquent API Resources, not laravel-data (`app-architecture`).
 
-**Base classes**: `Data` (full-featured input), `Resource` (output only — skips validation/authorization), `Dto` (stripped-down). ▸ This app uses `Data` for input, `Resource` for output.
+**Base classes**: `Data` (full-featured input), `Resource` (output only — skips validation/authorization), `Dto` (stripped-down). ▸ This app uses `Data` for input; it does **not** use laravel-data `Resource` for output — outbound API responses go through Laravel's built-in Eloquent API Resources (`app-architecture`).
 
 ## 2. Nesting & collections
 
@@ -127,7 +127,7 @@ Global transformers under `config/data.php` `transformers` (the published config
 - Manual rules: `public static function rules(): array`. Validation attributes: `#[Required]`, `#[Max(255)]`, `#[Email]`, `#[Exists('roles','name')]`, `#[Unique(...)]`, etc. `#[WithoutValidation]` skips a property. `#[MergeValidationRules]` merges manual with inferred.
 - `validateAndCreate()` / `validate()` validate explicitly; `from()` does not (unless the strategy says otherwise). `authorize()`, `messages()`, `attributes()`, `redirect()`, `withValidator()` hooks exist when a Data object *is* the validator — not used here.
 
-## 9. As a resource (output)
+## 9. Serialization (laravel-data mechanics)
 
 ```php
 SongData::from($song)->toArray();   // recursive transform
@@ -136,7 +136,7 @@ SongData::collect(Song::all());     // → array of serialized objects
 SongData::empty();                  // template with null/default values
 ```
 
-Data/Resource objects are `Arrayable` + `Responsable`, so they return straight from controllers and serialize to JSON. ▸ See `app-architecture` for the allowlist rule, `fromModel()`, paginators, and `->through(...)`.
+Data objects are `Arrayable` + `Responsable`, so they *can* serialize to JSON on their own. ▸ In this app they do **not** shape API responses, though — outbound responses go through Laravel's built-in Eloquent API Resources (allowlists, paginators, leak tests → `app-architecture`). These methods are for the odd internal serialization, not the HTTP output layer.
 
 ### Lazy properties
 
