@@ -29,7 +29,7 @@ test('contracts can be filtered by contract number', function (): void {
     $this->getJson(route('contracts.index', ['filter' => ['contract_number' => 'alpha']]))
         ->assertSuccessful()
         ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.contract_number', 'CTR-2026-ALPHA');
+        ->assertJsonPath('data.0.contractNumber', 'CTR-2026-ALPHA');
 });
 
 test('contracts can be filtered by partner name', function (): void {
@@ -39,7 +39,7 @@ test('contracts can be filtered by partner name', function (): void {
     $this->getJson(route('contracts.index', ['filter' => ['partner_name' => 'acme']]))
         ->assertSuccessful()
         ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.partner_name', 'Acme Kft.');
+        ->assertJsonPath('data.0.partnerName', 'Acme Kft.');
 });
 
 test('contracts can be sorted by contract number', function (): void {
@@ -48,7 +48,7 @@ test('contracts can be sorted by contract number', function (): void {
 
     $this->getJson(route('contracts.index', ['sort' => 'contract_number']))
         ->assertSuccessful()
-        ->assertJsonPath('data.0.contract_number', 'CTR-A');
+        ->assertJsonPath('data.0.contractNumber', 'CTR-A');
 });
 
 test('contract listing rejects non-whitelisted filters', function (): void {
@@ -67,7 +67,7 @@ test('a contract can be shown with its attached device units', function (): void
         ->assertJsonPath('data.id', $contract->uuid)
         ->assertJsonCount(2, 'data.devices');
 
-    expect(collect($response->json('data.devices'))->pluck('serial_number')->all())
+    expect(collect($response->json('data.devices'))->pluck('serialNumber')->all())
         ->toBe(['SN-00000001', 'SN-00000002'])
         ->and($response->json('data.devices.0.device.id'))->toBe($device->uuid);
 });
@@ -79,10 +79,10 @@ test('contract responses expose exactly the allowed fields', function (): void {
     $response = $this->getJson(route('contracts.show', $contract))->assertSuccessful();
 
     expect(array_keys($response->json('data')))->toBe([
-        'id', 'contract_number', 'partner_name', 'description',
-        'signed_at', 'starts_at', 'ends_at', 'devices', 'created_at', 'updated_at',
+        'id', 'contractNumber', 'partnerName', 'description',
+        'signedAt', 'startsAt', 'endsAt', 'devices', 'createdAt', 'updatedAt',
     ])->and(array_keys($response->json('data.devices.0')))->toBe([
-        'serial_number', 'attached_at', 'device',
+        'serialNumber', 'attachedAt', 'device',
     ]);
 });
 
@@ -102,8 +102,8 @@ test('contracts can be created', function (): void {
         'ends_at' => '2028-01-15',
     ])
         ->assertCreated()
-        ->assertJsonPath('data.contract_number', 'CTR-2026-001')
-        ->assertJsonPath('data.starts_at', '2026-01-15');
+        ->assertJsonPath('data.contractNumber', 'CTR-2026-001')
+        ->assertJsonPath('data.startsAt', '2026-01-15');
 
     $this->assertDatabaseHas('contracts', [
         'contract_number' => 'CTR-2026-001',
@@ -119,7 +119,7 @@ test('contracts can be created with only the required fields', function (): void
         'partner_name' => 'Acme Kft.',
     ])
         ->assertCreated()
-        ->assertJsonPath('data.signed_at', null);
+        ->assertJsonPath('data.signedAt', null);
 
     $this->assertDatabaseHas('contracts', ['contract_number' => 'CTR-2026-002']);
 });
@@ -130,8 +130,8 @@ test('contracts can be partially updated', function (): void {
 
     $this->patchJson(route('contracts.update', $contract), ['partner_name' => 'New Partner'])
         ->assertSuccessful()
-        ->assertJsonPath('data.partner_name', 'New Partner')
-        ->assertJsonPath('data.contract_number', $originalNumber);
+        ->assertJsonPath('data.partnerName', 'New Partner')
+        ->assertJsonPath('data.contractNumber', $originalNumber);
 
     expect($contract->refresh())
         ->partner_name->toBe('New Partner')

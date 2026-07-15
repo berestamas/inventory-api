@@ -13,7 +13,7 @@ test('a device can be attached to a contract', function (): void {
         'serial_number' => 'SN-0001',
     ])
         ->assertCreated()
-        ->assertJsonPath('data.serial_number', 'SN-0001')
+        ->assertJsonPath('data.serialNumber', 'SN-0001')
         ->assertJsonPath('data.device.id', $device->uuid);
 
     $this->assertDatabaseHas('contract_device', [
@@ -22,7 +22,7 @@ test('a device can be attached to a contract', function (): void {
         'serial_number' => 'SN-0001',
     ]);
 
-    expect(array_keys($response->json('data')))->toBe(['serial_number', 'attached_at', 'device']);
+    expect(array_keys($response->json('data')))->toBe(['serialNumber', 'attachedAt', 'device']);
 });
 
 test('the same device can be attached to one contract multiple times with different serials', function (): void {
@@ -68,7 +68,7 @@ test('serial numbers are stored uppercase', function (): void {
         'serial_number' => 'sn-abc-001',
     ])
         ->assertCreated()
-        ->assertJsonPath('data.serial_number', 'SN-ABC-001');
+        ->assertJsonPath('data.serialNumber', 'SN-ABC-001');
 
     $this->assertDatabaseHas('contract_device', ['serial_number' => 'SN-ABC-001']);
 });

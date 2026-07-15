@@ -72,6 +72,7 @@ All endpoints live under `/api/v1` and speak JSON.
 Notes:
 
 - Resources are addressed by UUID; internal auto-increment IDs are never exposed.
+- Response bodies use **camelCase** field names (`contractNumber`, `serialNumber`, `createdAt`, ...); request payloads and `filter`/`sort` query parameters stay snake_case.
 - Serial numbers are limited to `A-Z a-z 0-9 . _ : -` (so every serial stays URL-addressable) and are stored uppercase; matching is case-insensitive.
 - The same device type may be attached to one contract multiple times with different serials; a serial number is unique across the whole system.
 - Attaching with an unknown device UUID is a validation error (`422`), not a `404`.

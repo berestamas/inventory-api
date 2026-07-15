@@ -67,7 +67,7 @@ test('device responses expose exactly the allowed fields', function (): void {
     $response = $this->getJson(route('devices.show', $device))->assertSuccessful();
 
     expect(array_keys($response->json('data')))->toBe([
-        'id', 'name', 'manufacturer', 'category', 'description', 'created_at', 'updated_at',
+        'id', 'name', 'manufacturer', 'category', 'description', 'createdAt', 'updatedAt',
     ]);
 });
 

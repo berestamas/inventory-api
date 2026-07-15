@@ -22,8 +22,8 @@ class ContractDeviceUnitResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'serial_number' => $this->serial_number,
-            'attached_at' => $this->created_at,
+            'serialNumber' => $this->serial_number,
+            'attachedAt' => $this->created_at,
             'device' => DeviceResource::make($this->whenLoaded('device')),
         ];
     }
