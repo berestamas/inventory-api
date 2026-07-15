@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             DeviceSeeder::class,
             ContractSeeder::class,
+            ApiRequestLogSeeder::class,
         ]);
     }
 }
