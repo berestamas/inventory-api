@@ -17,6 +17,15 @@ test('device deletion removes an unattached device', function (): void {
     $this->assertDatabaseMissing('devices', ['id' => $device->id]);
 });
 
+test('device deletion is a no-op for an already deleted device', function (): void {
+    $device = Device::factory()->create();
+    Device::query()->whereKey($device)->delete();
+
+    app(DeleteDevice::class)->handle($device);
+
+    $this->assertDatabaseMissing('devices', ['id' => $device->id]);
+});
+
 test('device deletion refuses an attached device and keeps it', function (): void {
     $device = Device::factory()->create();
     $contract = Contract::factory()->create();

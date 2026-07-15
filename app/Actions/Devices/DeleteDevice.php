@@ -14,6 +14,8 @@ class DeleteDevice
      *
      * The attachment guard is part of the DELETE statement itself, so a
      * concurrently attached unit can never slip between check and delete.
+     * When nothing was deleted, distinguish "still attached" (409) from
+     * "already deleted elsewhere" (idempotent no-op).
      */
     public function handle(Device $device): void
     {
@@ -22,8 +24,12 @@ class DeleteDevice
             ->whereDoesntHave('units')
             ->delete();
 
+        if ($deleted > 0) {
+            return;
+        }
+
         throw_if(
-            $deleted === 0,
+            Device::query()->whereKey($device)->exists(),
             new ConflictHttpException('The device is attached to a contract and cannot be deleted.'),
         );
     }
