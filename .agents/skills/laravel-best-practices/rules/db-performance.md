@@ -167,19 +167,26 @@ foreach (User::where('active', true)->cursor() as $user) {
 
 Use `cursor()` for read-only iteration. Use `chunk()` / `chunkById()` when modifying records.
 
-## No Queries During Serialization
+## No Queries in Blade Templates
 
-Never trigger queries while serializing a response. Eager-load every relationship the API resource touches before it is transformed, so no lazy load fires per row.
+Never execute queries in Blade templates. Pass data from controllers.
 
 Incorrect:
-```php
-// N+1: each item lazy-loads its profile during serialization
-$users = User::all();
-return UserResource::collect($users);
+```blade
+@foreach (User::all() as $user)
+    {{ $user->profile->name }}
+@endforeach
 ```
 
 Correct:
 ```php
+// Controller
 $users = User::with('profile')->get();
-return UserResource::collect($users);
+return view('users.index', compact('users'));
+```
+
+```blade
+@foreach ($users as $user)
+    {{ $user->profile->name }}
+@endforeach
 ```
