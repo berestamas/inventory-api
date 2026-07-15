@@ -11,7 +11,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $signed_at
+ * @property Carbon|null $starts_at
+ * @property Carbon|null $ends_at
+ */
 #[Fillable(['uuid', 'contract_number', 'partner_name', 'description', 'signed_at', 'starts_at', 'ends_at'])]
 class Contract extends Model
 {
