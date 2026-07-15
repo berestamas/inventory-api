@@ -39,6 +39,16 @@ curl http://localhost:8080/api/v1/devices -H 'Accept: application/json'
 
 > **Linux hosts:** the image maps the container user to UID/GID 1000 by default. If your user has a different ID, build with `USER_ID=$(id -u) GROUP_ID=$(id -g) docker compose up -d --build` so the bind-mounted `storage/` directory stays writable.
 
+### Teardown
+
+Stop the stack and remove **everything it created** — containers, network, the MySQL data volume, and the images:
+
+```bash
+docker compose down --volumes --rmi all --remove-orphans
+```
+
+This wipes the database permanently. Files on the host (source code, `vendor/`, `.env`) are untouched — they live in the bind mount, not in the containers. To stop without losing data, use plain `docker compose down` (or `docker compose stop` to keep the containers).
+
 ## API documentation
 
 Interactive OpenAPI docs (generated from the FormRequests and API Resources — always in sync with the code):
