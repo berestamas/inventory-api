@@ -16,6 +16,12 @@ test('unknown api urls do not leak exception details', function (): void {
         ->and($response->json())->not->toHaveKey('trace');
 });
 
+test('wrong http verbs return the unified 405 envelope', function (): void {
+    $this->patchJson(route('devices.index'))
+        ->assertMethodNotAllowed()
+        ->assertExactJson(['message' => 'Method not allowed.']);
+});
+
 test('web 404s keep the html error page', function (): void {
     $response = $this->get('/nonexistent');
 
