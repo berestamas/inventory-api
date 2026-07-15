@@ -15,6 +15,8 @@ class LogApiRequest
 
     private const array REDACTED_HEADERS = ['authorization', 'cookie', 'php-auth-pw'];
 
+    private const array REDACTED_BODY_KEYS = ['password', 'password_confirmation', 'current_password', 'secret', 'token', 'api_key', 'access_token', 'refresh_token'];
+
     private const string STARTED_AT_ATTRIBUTE = 'log_api_request_started_at';
 
     /**
@@ -66,7 +68,8 @@ class LogApiRequest
     }
 
     /**
-     * Truncate a body to a storable size; streamed responses yield no content.
+     * Redact sensitive JSON fields, then truncate to a storable size;
+     * streamed responses yield no content.
      */
     private function truncated(string|false $content): ?string
     {
@@ -74,7 +77,28 @@ class LogApiRequest
             return null;
         }
 
+        $decoded = json_decode($content, associative: true);
+
+        if (is_array($decoded)) {
+            $content = (string) json_encode($this->redactedValues($decoded));
+        }
+
         return mb_strcut($content, 0, self::MAX_BODY_BYTES);
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $values
+     * @return array<array-key, mixed>
+     */
+    private function redactedValues(array $values): array
+    {
+        return collect($values)
+            ->map(fn (mixed $value, int|string $key): mixed => match (true) {
+                is_string($key) && in_array(strtolower($key), self::REDACTED_BODY_KEYS, true) => '[redacted]',
+                is_array($value) => $this->redactedValues($value),
+                default => $value,
+            })
+            ->all();
     }
 
     /**

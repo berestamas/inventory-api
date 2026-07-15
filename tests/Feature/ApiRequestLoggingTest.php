@@ -41,6 +41,22 @@ test('request bodies are logged and sensitive headers are redacted', function ()
         ->and($apiRequestLog->status)->toBe(201);
 });
 
+test('sensitive body fields are redacted before storage', function (): void {
+    $this->postJson(route('devices.store'), [
+        'name' => 'ThinkPad X1 Carbon',
+        'manufacturer' => 'Lenovo',
+        'category' => DeviceCategory::Laptop->value,
+        'password' => 'hunter2',
+        'nested' => ['api_key' => 'sk-live-abc123'],
+    ])->assertCreated();
+
+    $apiRequestLog = ApiRequestLog::query()->sole();
+
+    expect($apiRequestLog->request_body)->toContain('[redacted]')
+        ->not->toContain('hunter2')
+        ->not->toContain('sk-live-abc123');
+});
+
 test('oversized bodies are truncated before storage', function (): void {
     $this->postJson(route('devices.store'), [
         'name' => str_repeat('a', 100000),
