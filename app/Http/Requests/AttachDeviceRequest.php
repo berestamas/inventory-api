@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Data\Contracts\AttachDeviceData;
+use App\Models\ContractDevice;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -16,14 +17,14 @@ class AttachDeviceRequest extends FormRequest
     use WithData;
 
     /**
-     * Serial numbers are stored uppercase; canonicalize before the unique rule runs
-     * so case variants collide identically on every database engine.
+     * Canonicalize the serial before the unique rule runs, so case variants
+     * collide identically on every database engine.
      */
     #[\Override]
     protected function prepareForValidation(): void
     {
         if (is_string($this->input('serial_number'))) {
-            $this->merge(['serial_number' => mb_strtoupper($this->string('serial_number')->value())]);
+            $this->merge(['serial_number' => ContractDevice::canonicalSerial($this->string('serial_number')->value())]);
         }
     }
 

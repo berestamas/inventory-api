@@ -26,6 +26,16 @@ class ContractDevice extends Pivot
     protected $table = 'contract_device';
 
     /**
+     * Canonical storage form of a serial number: uppercase, so uniqueness
+     * behaves identically on case-insensitive (MySQL) and case-sensitive
+     * (SQLite) engines. Both validation and persistence must use this form.
+     */
+    public static function canonicalSerial(string $serialNumber): string
+    {
+        return mb_strtoupper($serialNumber);
+    }
+
+    /**
      * The contract this unit belongs to.
      *
      * @return BelongsTo<Contract, $this>
