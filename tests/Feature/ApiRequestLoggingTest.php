@@ -78,6 +78,7 @@ test('method-not-allowed requests are logged', function (): void {
 test('non-api requests are not logged', function (): void {
     $this->get('/')->assertSuccessful();
     $this->get('/up')->assertSuccessful();
+    $this->get('/docs/api')->assertUnauthorized();
 
     expect(ApiRequestLog::query()->count())->toBe(0);
 });
