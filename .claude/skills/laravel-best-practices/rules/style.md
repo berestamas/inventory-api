@@ -16,7 +16,6 @@
 | Variable | camelCase | `$articlesWithAuthor` | `$articles_with_author` |
 | Collection | descriptive, plural | `$activeUsers` | `$data` |
 | Object | descriptive, singular | `$activeUser` | `$users` |
-| View | kebab-case | `show-filtered.blade.php` | `showFiltered.blade.php` |
 | Config | snake_case | `google_calendar.php` | `googleCalendar.php` |
 | Enum | singular | `UserType` | `UserTypes` |
 
@@ -92,22 +91,6 @@ $uri = Uri::of('https://example.com/search')
 Use `$request->string('name')` to get a fluent `Stringable` directly from request input for immediate chaining.
 
 Use `search-docs` for the full list of available methods — these helpers are extensive.
-
-## No Inline JS/CSS in Blade
-
-Do not put JS or CSS in Blade templates. Do not put HTML in PHP classes.
-
-Incorrect:
-```blade
-let article = `{{ json_encode($article) }}`;
-```
-
-Correct:
-```blade
-<button class="js-fav-article" data-article='@json($article)'>{{ $article->name }}</button>
-```
-
-Pass data to JS via data attributes or use a dedicated PHP-to-JS package.
 
 ## No Unnecessary Comments
 

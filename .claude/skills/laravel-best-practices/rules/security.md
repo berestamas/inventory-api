@@ -74,39 +74,6 @@ User::where('name', $request->name)->get();
 User::whereRaw('LOWER(name) = ?', [strtolower($request->name)])->get();
 ```
 
-## Escape Output to Prevent XSS
-
-Use `{{ }}` for HTML escaping. Only use `{!! !!}` for trusted, pre-sanitized content.
-
-Incorrect:
-```blade
-{!! $user->bio !!}
-```
-
-Correct:
-```blade
-{{ $user->bio }}
-```
-
-## CSRF Protection
-
-Include `@csrf` in all POST/PUT/DELETE Blade forms. In Inertia apps, the `@csrf` directive is automatically applied.
-
-Incorrect:
-```blade
-<form method="POST" action="/posts">
-    <input type="text" name="title">
-</form>
-```
-
-Correct:
-```blade
-<form method="POST" action="/posts">
-    @csrf
-    <input type="text" name="title">
-</form>
-```
-
 ## Rate Limit Auth and API Routes
 
 Apply `throttle` middleware to authentication and API routes.

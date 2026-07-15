@@ -12,12 +12,14 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - php - 8.5
 - laravel/framework (LARAVEL) - v13
 - laravel/prompts (PROMPTS) - v0
+- larastan/larastan (LARASTAN) - v3
 - laravel/boost (BOOST) - v2
 - laravel/mcp (MCP) - v0
 - laravel/pail (PAIL) - v1
 - laravel/pint (PINT) - v1
 - pestphp/pest (PEST) - v4
 - phpunit/phpunit (PHPUNIT) - v12
+- rector/rector (RECTOR) - v2
 - tailwindcss (TAILWINDCSS) - v4
 
 ## Skills Activation
@@ -153,3 +155,13 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Do NOT delete tests without approval.
 
 </laravel-boost-guidelines>
+
+## Conventional Commits (project rule)
+
+- Every commit message MUST follow Conventional Commits 1.0.0: `type(scope)?: description`. A `commit-msg` git hook in `.githooks/` rejects non-conforming messages.
+- Activate the `conventional-commits` skill whenever you write a commit message, amend, or reword a commit. It documents the allowed types, scopes, breaking-change syntax, and examples.
+- Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Subject in imperative mood, lowercase, no trailing period, ≤ 72 chars.
+- **Commit at the end of every completed phase.** In a multi-step task, at each phase boundary (a self-contained, working step — e.g. a checked-off todo, a migration + its factory/seeder, an Action + its tests): run the QA gate, stage only that phase's paths, and make one Conventional Commit before starting the next phase. This is standing authorization — do not re-ask each time.
+- Branch only when on `main`: if the current branch is `main`, create a feature branch before the first commit; if already on another branch, commit straight into that branch (do not create a new one).
+- Never `git push` unless the user explicitly asks; keep unrelated changes in separate commits; never `git add -A` blindly (the tree may hold unrelated edits).
+- If the hook is not active in a fresh clone, enable it once with `git config core.hooksPath .githooks`.
