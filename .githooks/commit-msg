@@ -1,0 +1,52 @@
+#!/bin/sh
+#
+# Conventional Commits commit-msg hook.
+# Rejects any commit whose subject line does not follow Conventional Commits 1.0.0:
+#
+#   <type>(<scope>)?<!>?: <description>
+#
+# See .claude/skills/conventional-commits/SKILL.md for the full spec.
+# Enable with:  git config core.hooksPath .githooks
+
+commit_msg_file="$1"
+
+# First non-empty, non-comment line = the subject.
+subject="$(grep -v '^#' "$commit_msg_file" | sed '/^[[:space:]]*$/d' | head -n 1)"
+
+# Skip git-generated messages so normal workflows aren't blocked.
+case "$subject" in
+    "Merge "*|"Revert "*|"fixup! "*|"squash! "*|"amend! "*)
+        exit 0
+        ;;
+esac
+
+types='feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert'
+
+# type(scope)?!?: description  — scope is optional, ! is optional.
+pattern="^(${types})(\([a-z0-9._/,\ -]+\))?(!)?: .+"
+
+if ! printf '%s' "$subject" | grep -Eq "$pattern"; then
+    printf '\n\033[31m✖ Invalid commit message.\033[0m\n\n'
+    printf '  Subject: "%s"\n\n' "$subject"
+    printf '  Commit messages must follow Conventional Commits 1.0.0:\n\n'
+    printf '      <type>(<scope>)?: <description>\n\n'
+    printf '  Allowed types: %s\n\n' "$(printf '%s' "$types" | tr '|' ' ')"
+    printf '  Examples:\n'
+    printf '      feat(inventory): add low-stock threshold alerts\n'
+    printf '      fix(auth): reject expired tokens on refresh\n'
+    printf '      chore(deps): bump laravel/framework to 13.2\n\n'
+    printf '  Details: .claude/skills/conventional-commits/SKILL.md\n\n'
+    exit 1
+fi
+
+# Length guidance: warn past 72, hard-reject past 100.
+subject_length="$(printf '%s' "$subject" | wc -c | tr -d ' ')"
+if [ "$subject_length" -gt 100 ]; then
+    printf '\n\033[31m✖ Commit subject is %s chars (max 100).\033[0m Move detail into the body.\n\n' "$subject_length"
+    exit 1
+fi
+if [ "$subject_length" -gt 72 ]; then
+    printf '\n\033[33m⚠ Commit subject is %s chars; keep it ≤ 72.\033[0m Consider a shorter subject + body.\n\n' "$subject_length"
+fi
+
+exit 0

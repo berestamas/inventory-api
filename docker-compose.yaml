@@ -1,0 +1,65 @@
+services:
+  php:
+    build:
+      context: .
+      args:
+        USER_ID: "${USER_ID:-1000}"
+        GROUP_ID: "${GROUP_ID:-1000}"
+    ports:
+      - "8080:8080"
+    environment:
+      SSL_MODE: "off"
+      PHP_OPCACHE_ENABLE: "1"
+      # Bind-mounted source: re-check file timestamps on every request so code
+      # changes take effect immediately while opcache stays enabled.
+      PHP_OPCACHE_REVALIDATE_FREQ: "0"
+      HEALTHCHECK_PATH: "/up"
+      AUTORUN_ENABLED: "true"
+      AUTORUN_LARAVEL_MIGRATION: "true"
+      AUTORUN_LARAVEL_CONFIG_CACHE: "false"
+      AUTORUN_LARAVEL_ROUTE_CACHE: "false"
+      AUTORUN_LARAVEL_VIEW_CACHE: "false"
+      AUTORUN_LARAVEL_EVENT_CACHE: "false"
+      AUTORUN_LARAVEL_STORAGE_LINK: "false"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  scheduler:
+    build:
+      context: .
+      args:
+        USER_ID: "${USER_ID:-1000}"
+        GROUP_ID: "${GROUP_ID:-1000}"
+    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD", "healthcheck-schedule"]
+      start_period: 10s
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: inventory
+      MYSQL_USER: inventory
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  mysql-data:
